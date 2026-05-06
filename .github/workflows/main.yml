@@ -10,7 +10,6 @@ jobs:
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,16 +30,13 @@ jobs:
     name: Deploy Web & GitHub Pages
     needs: unit-tests 
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       pages: write
       id-token: write
-      
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-      
     steps:
       - name: Code Checkout
         uses: actions/checkout@v4
@@ -54,6 +50,7 @@ jobs:
         run: npm ci
 
       - name: Inject Venvs (.env)
+        # Atenção: Verifique se no seu código JS você usa TMDB_KEY ou TMDB_API_KEY
         run: echo "EXPO_PUBLIC_TMDB_KEY=${{ secrets.TMDB_API_KEY }}" > .env
 
       - name: Exporte Code to Web (Build)
@@ -71,10 +68,12 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         
- build-android:
+  build-android:
+    name: Build Android & Release
     runs-on: ubuntu-latest
-    # Garante que o build nativo só ocorra após o sucesso das etapas anteriores
-    needs: [test, deploy-web] 
+    needs: [unit-tests, deploy-web]
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,7 +94,7 @@ jobs:
         run: npm ci
 
       - name: Create .env file
-        run: echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}" > .env
+        run: echo "EXPO_PUBLIC_TMDB_KEY=${{ secrets.TMDB_API_KEY }}" > .env
 
       - name: Expo Prebuild
         run: npx expo prebuild --platform android
