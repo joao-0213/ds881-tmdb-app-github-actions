@@ -26,3 +26,47 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  deploy-web:
+    name: Deploy Web & GitHub Pages
+    needs: unit-tests 
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Inject Venvs (.env)
+        run: echo "EXPO_PUBLIC_TMDB_KEY=${{ secrets.TMDB_API_KEY }}" > .env
+
+      - name: Exporte Code to Web (Build)
+        run: npx expo export -p web
+
+      - name: Bypass Jekyll
+        run: touch dist/.nojekyll
+
+      - name: Upload build artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
